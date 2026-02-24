@@ -36,8 +36,7 @@ def get_train_transforms() -> A.Compose:
                                   val_shift_limit=20),
         ], p=0.5),
         A.OneOf([
-            A.GaussianBlur(blur_limit=(3, 5)),
-            A.GaussNoise(noise_scale_factor=0.1),
+            A.GaussNoise(var_limit=(10.0, 50.0)),
         ], p=0.3),
         A.CoarseDropout(num_holes_range=(1, 8),
                         hole_height_range=(5, 20),
