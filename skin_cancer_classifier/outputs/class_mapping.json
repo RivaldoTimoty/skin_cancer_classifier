@@ -1,0 +1,25 @@
+{
+  "class_to_idx": {
+    "actinic keratosis": 0,
+    "basal cell carcinoma": 1,
+    "dermatofibroma": 2,
+    "melanoma": 3,
+    "nevus": 4,
+    "pigmented benign keratosis": 5,
+    "seborrheic keratosis": 6,
+    "squamous cell carcinoma": 7,
+    "vascular lesion": 8
+  },
+  "idx_to_class": {
+    "0": "actinic keratosis",
+    "1": "basal cell carcinoma",
+    "2": "dermatofibroma",
+    "3": "melanoma",
+    "4": "nevus",
+    "5": "pigmented benign keratosis",
+    "6": "seborrheic keratosis",
+    "7": "squamous cell carcinoma",
+    "8": "vascular lesion"
+  },
+  "num_classes": 9
+}
