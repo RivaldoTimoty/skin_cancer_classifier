@@ -24,7 +24,7 @@ import config
 def get_train_transforms() -> A.Compose:
     """Advanced training augmentation pipeline using Albumentations."""
     return A.Compose([
-        A.RandomResizedCrop(size=(config.IMG_SIZE, config.IMG_SIZE),
+        A.RandomResizedCrop(height=config.IMG_SIZE, width=config.IMG_SIZE,
                             scale=(0.8, 1.0), ratio=(0.9, 1.1)),
         A.HorizontalFlip(p=0.5),
         A.VerticalFlip(p=0.5),
