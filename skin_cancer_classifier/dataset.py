@@ -38,10 +38,6 @@ def get_train_transforms() -> A.Compose:
         A.OneOf([
             A.GaussNoise(var_limit=(10.0, 50.0)),
         ], p=0.3),
-        A.CoarseDropout(num_holes_range=(1, 8),
-                        hole_height_range=(5, 20),
-                        hole_width_range=(5, 20),
-                        fill=0, p=0.3),
         A.Normalize(mean=config.IMAGENET_MEAN, std=config.IMAGENET_STD),
         ToTensorV2(),
     ])
