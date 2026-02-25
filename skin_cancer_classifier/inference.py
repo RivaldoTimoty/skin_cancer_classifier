@@ -37,7 +37,11 @@ def load_class_mapping():
     if os.path.exists(mapping_path):
         with open(mapping_path, "r") as f:
             mapping = json.load(f)
-        idx_to_class = {int(k): v for k, v in mapping.items()}
+        
+        # Handle nested dictionary if present
+        idx_mapping = mapping.get("idx_to_class", mapping)
+        
+        idx_to_class = {int(k): v for k, v in idx_mapping.items()}
         return idx_to_class
     # Fallback to config if JSON doesn't exist
     return config.IDX_TO_CLASS

@@ -43,9 +43,10 @@ st.markdown("""
         border-radius: 5px;
         margin-top: 2rem;
         margin-bottom: 1rem;
+        color: #000000;
     }
     .disclaimer-text {
-        color: #D35400;
+        color: #000000;
         font-weight: 600;
         font-size: 0.95rem;
     }
@@ -87,14 +88,10 @@ def init_system():
     if not os.path.exists(model_path):
         return None, None, device
         
-    try:
-        model = load_inference_model(model_path, device)
-        idx_to_class = load_class_mapping()
-        return model, idx_to_class, device
-    except Exception as e:
-        # Catch architecture mismatch (state_dict runtime errors) from old runs
-        st.warning(f"Model checkpoint found, but it is incompatible with the current architecture. Waiting for the new training run to overwrite it.")
-        return None, None, device
+    # Load model and class mapping directly so we can see the true error traceback
+    model = load_inference_model(model_path, device)
+    idx_to_class = load_class_mapping()
+    return model, idx_to_class, device
 
 # ==============================================================================
 # Main Application

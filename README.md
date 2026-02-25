@@ -57,10 +57,10 @@ skin_cancer_classifier/
 
 | Metric | Score |
 |--------|-------|
-| **Accuracy** | `[YOUR_FINAL_ACCURACY_HERE]` |
-| **Precision (Macro)** | `[YOUR_FINAL_PRECISION_HERE]` |
-| **Recall (Macro)** | `[YOUR_FINAL_RECALL_HERE]` |
-| **F1-Score (Macro)** | `[YOUR_FINAL_F1_HERE]` |
+| **Accuracy** | `77.38%` |
+| **Precision (Macro)** | `68.49%` |
+| **Recall (Macro)** | `67.73%` |
+| **F1-Score (Macro)** | `67.14%` |
 
 > 📁 *Detailed ROC curves, per-class metrics, and the Confusion Matrix can be found in `outputs/evaluation_report.md` after training.*
 
