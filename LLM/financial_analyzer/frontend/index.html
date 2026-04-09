@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Report Analyzer</title>
+    <!-- Always use base Tailwind CDN for perfect compatibility -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #020617; /* slate-950 */
+            color: #f1f5f9; /* slate-100 */
+        }
+
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        .glass-header {
+            background: rgba(2, 6, 23, 0.75);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .chat-input-wrapper {
+            background: #0f172a; /* slate-900 */
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
+        }
+        .chat-input-wrapper:focus-within {
+            border-color: #38bdf8; /* sky-400 */
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.1);
+        }
+
+        /* Markdown */
+        .prose p { margin-bottom: 1rem; line-height: 1.6; }
+        .prose h1, .prose h2, .prose h3 { color: #f8fafc; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.5rem; }
+        .prose strong { color: #f8fafc; font-weight: 600; }
+        .prose ul, .prose ol { padding-left: 1.5rem; margin-bottom: 1rem; list-style-type: disc; }
+        .prose li { margin-bottom: 0.25rem; }
+        .prose code { background: rgba(255,255,255,0.05); padding: 0.2em 0.4em; border-radius: 4px; font-family: 'JetBrains Mono'; color: #38bdf8; font-size: 0.85em; }
+    </style>
+</head>
+<body class="h-screen w-full flex overflow-hidden antialiased bg-slate-950">
+
+    <!-- Sidebar -->
+    <aside class="w-72 h-full flex flex-col border-r border-slate-800 bg-slate-900/50 shrink-0">
+        <!-- Logo -->
+        <div class="h-16 flex items-center px-6 border-b border-slate-800 shrink-0 bg-slate-900">
+            <div class="w-8 h-8 rounded bg-sky-500/10 border border-sky-500/20 flex items-center justify-center mr-3 text-sky-400">
+                <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+            </div>
+            <span class="font-bold text-white tracking-tight text-lg">FinAnalyzer</span>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-5 flex flex-col gap-8">
+            
+            <!-- Connection Status -->
+            <div>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">System Identity</p>
+                <div class="flex items-center justify-between py-1 my-2">
+                    <div class="flex items-center gap-3 text-sm text-slate-300">
+                        <i data-lucide="cpu" class="w-4 h-4 text-slate-400"></i>
+                        Ollama Engine
+                    </div>
+                    <div id="status-ollama" class="flex items-center gap-1.5 object-right">Loading...</div>
+                </div>
+                <div class="flex items-center justify-between py-1 my-2">
+                    <div class="flex items-center gap-3 text-sm text-slate-300">
+                        <i data-lucide="database" class="w-4 h-4 text-slate-400"></i>
+                        Vector Data
+                    </div>
+                    <div id="status-index" class="flex items-center gap-1.5">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Upload Zone -->
+            <div>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Data Source</p>
+                <div id="drop-zone" class="relative rounded-xl p-6 text-center flex flex-col items-center border border-dashed border-slate-700 bg-slate-800/20 hover:bg-sky-500/5 hover:border-sky-500/40 cursor-pointer transition-all">
+                    <input type="file" id="file-upload" multiple accept=".pdf,.csv,.xlsx,.xls,.docx,.txt" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                    <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center mb-3 text-slate-400">
+                        <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                    </div>
+                    <p class="text-sm font-medium text-slate-200">Upload Files</p>
+                    <p class="text-[11px] text-slate-500 mt-1">PDF, Excel, Word</p>
+                </div>
+
+                <!-- Document List visually persists file names here -->
+                <div id="file-list" class="mt-4 flex flex-col gap-2 empty:hidden"></div>
+
+                <!-- Live Progress Tracking -->
+                <div id="upload-progress" class="hidden mt-4 bg-slate-900 border border-slate-800 rounded-lg p-3">
+                    <div class="flex items-center justify-between mb-2">
+                        <span id="progress-text" class="text-xs text-sky-400 font-medium">Extracting... 0%</span>
+                        <i data-lucide="loader-2" class="w-3 h-3 text-sky-400 animate-spin"></i>
+                    </div>
+                    <div class="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                        <div id="progress-bar" class="h-full bg-sky-500 w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 flex flex-col relative bg-slate-950">
+        
+        <!-- Header -->
+        <header class="h-16 flex items-center justify-between px-6 glass-header sticky top-0 z-20 shrink-0">
+            <span class="text-sm font-medium text-slate-400">Analysis Workspace</span>
+            
+            <div class="flex gap-2">
+                <button onclick="triggerPreset('summary')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-800 bg-slate-900 border-b-2 hover:border-sky-500 hover:text-sky-400 transition-all text-slate-300">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i> Summary
+                </button>
+                <button onclick="triggerPreset('kpi')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-800 bg-slate-900 border-b-2 hover:border-amber-500 hover:text-amber-400 transition-all text-slate-300">
+                    <i data-lucide="pie-chart" class="w-3.5 h-3.5"></i> Extract KPIs
+                </button>
+                <button onclick="triggerPreset('risk')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-800 bg-slate-900 border-b-2 hover:border-rose-500 hover:text-rose-400 transition-all text-slate-300">
+                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Risks Scan
+                </button>
+            </div>
+        </header>
+
+        <!-- Chat Area -->
+        <div id="chat-container" class="flex-1 overflow-y-auto px-4 py-8 pb-40">
+            <div class="max-w-4xl mx-auto flex flex-col gap-6 w-full">
+                
+                <!-- Welcome -->
+                <div id="empty-state" class="flex flex-col items-center justify-center py-20 mt-10 opacity-70">
+                    <div class="w-20 h-20 bg-sky-500/10 rounded-full flex items-center justify-center border border-sky-500/20 mb-6">
+                        <i data-lucide="sparkles" class="w-8 h-8 text-sky-400"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-white mb-3">FinAnalyzer <span class="text-sky-400">AI</span></h2>
+                    <p class="text-slate-400 text-center max-w-md">Connect your local Qwen2.5 engine to your financial documents. Start by uploading a file on the left.</p>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Sticky Input Area -->
+        <div class="absolute bottom-0 w-full left-0 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent pt-12 pb-6 px-4 shrink-0 pointer-events-none">
+            <div class="max-w-4xl mx-auto pointer-events-auto">
+                <form id="chat-form" class="chat-input-wrapper flex items-end rounded-2xl relative p-1.5 pl-4 group shadow-xl">
+                    <textarea 
+                        id="chat-input" 
+                        rows="1" 
+                        class="flex-1 bg-transparent border-0 outline-none resize-none py-3 min-h-[44px] max-h-48 text-[15px] text-white placeholder-slate-500" 
+                        placeholder="Ask anything about the report... (e.g. 'What is the gross margin?')"
+                        oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"
+                    ></textarea>
+                    
+                    <button type="submit" id="send-btn" class="w-10 h-10 shrink-0 ml-2 rounded-xl bg-slate-800 hover:bg-sky-500 text-white flex items-center justify-center transition-colors disabled:opacity-50 disabled:bg-slate-900 disabled:text-slate-600 border border-slate-700 shadow-sm cursor-pointer">
+                        <i data-lucide="send" class="w-4 h-4 ml-0.5"></i>
+                    </button>
+                </form>
+                <div class="text-center mt-3">
+                    <span class="text-[11px] text-slate-500">AI responses may be inaccurate. Check facts against the original files.</span>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        lucide.createIcons();
+        const API_URL = "http://localhost:8000/api";
+        const container = document.querySelector('#chat-container > div');
+
+        const checkHealth = async () => {
+            try {
+                const res = await fetch(`${API_URL}/health`);
+                const data = await res.json();
+                
+                const sOllama = document.getElementById('status-ollama');
+                if (data.ollama_running) {
+                    sOllama.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></span><span class="text-xs text-emerald-400 font-medium">Online</span>';
+                } else {
+                    sOllama.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e]"></span><span class="text-xs text-rose-500 font-medium">Offline</span>';
+                }
+
+                const sIndex = document.getElementById('status-index');
+                if (data.has_index) {
+                    sIndex.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span class="text-xs text-slate-300 font-medium">Indexed</span>';
+                } else {
+                    sIndex.innerHTML = '<span class="w-2 h-2 rounded-full bg-slate-600"></span><span class="text-xs text-slate-500 font-medium">Empty</span>';
+                }
+            } catch (e) {
+                console.warn("Backend not running.");
+            }
+        };
+        const loadFiles = async () => {
+            try {
+                const res = await fetch(`${API_URL}/files`);
+                const files = await res.json();
+                const list = document.getElementById('file-list');
+                list.innerHTML = files.map(f => `
+                    <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/30 border border-slate-700/50 shadow-sm">
+                        <svg class="w-3 h-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                        <span class="text-[11px] text-slate-300 truncate w-full" title="${f.name}">${f.name}</span>
+                    </div>
+                `).join('');
+            } catch (e) {}
+        };
+        
+        checkHealth(); setInterval(checkHealth, 5000);
+        loadFiles();
+
+        const fileInput = document.getElementById('file-upload');
+        fileInput.addEventListener('change', async (e) => {
+            if (!e.target.files.length) return;
+            
+            const progressContainer = document.getElementById('upload-progress');
+            const progressText = document.getElementById('progress-text');
+            const progressBar = document.getElementById('progress-bar');
+            
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = '0%';
+            progressText.innerText = 'Extracting... 0%';
+
+            const formData = new FormData();
+            for (const f of e.target.files) formData.append('files', f);
+
+            // Polling interval checking our new API
+            const poll = setInterval(async () => {
+                try {
+                    const r = await fetch(`${API_URL}/progress`);
+                    const d = await r.json();
+                    progressBar.style.width = d.progress + '%';
+                    progressText.innerText = `Indexing... ${d.progress}%`;
+                    if (d.progress === 100) clearInterval(poll);
+                } catch(e){}
+            }, 600);
+
+            try {
+                const res = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
+                if (res.ok) {
+                    checkHealth();
+                    loadFiles();
+                } else alert('Failed to process documents. Check backend console.');
+            } catch (err) { alert('Error contacting server.'); }
+            finally {
+                clearInterval(poll);
+                setTimeout(() => { progressContainer.classList.add('hidden'); }, 1200);
+                fileInput.value = '';
+            }
+        });
+
+        let isGenerating = false;
+        
+        function addMessage(role, text) {
+            document.getElementById('empty-state')?.remove();
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `flex w-full gap-4 ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+            
+            const contentHTML = role === 'user' 
+                ? `<div class="max-w-[75%] bg-slate-800 text-white px-5 py-3.5 rounded-2xl rounded-tr-sm border border-slate-700 shadow-md"><div class="whitespace-pre-wrap text-sm leading-relaxed">${text}</div></div>`
+                : `
+                <div class="w-9 h-9 rounded-full shrink-0 bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 shadow-sm mt-1">
+                    <i data-lucide="bot" class="w-5 h-5"></i>
+                </div>
+                <div class="flex-1 max-w-[85%] prose prose-invert overflow-hidden AI-CONTENT text-slate-300 text-[15px] pt-1"></div>`;
+            
+            msgDiv.innerHTML = contentHTML;
+            container.appendChild(msgDiv);
+            if (role !== 'user') lucide.createIcons({root: msgDiv});
+            document.getElementById('chat-container').scrollTop = document.getElementById('chat-container').scrollHeight;
+            return role === 'user' ? null : msgDiv.querySelector('.AI-CONTENT');
+        }
+
+        async function streamResponse(endpoint, payload) {
+            if (isGenerating) return;
+            isGenerating = true;
+            document.getElementById('send-btn').disabled = true;
+
+            const aiBubble = addMessage('ai', '');
+            aiBubble.innerHTML = '<div class="flex gap-1.5 mt-2"><span class="w-2 h-2 rounded-full bg-slate-600 animate-bounce"></span><span class="w-2 h-2 rounded-full bg-slate-600 animate-bounce" style="animation-delay:0.15s"></span><span class="w-2 h-2 rounded-full bg-slate-600 animate-bounce" style="animation-delay:0.3s"></span></div>';
+            
+            try {
+                const response = await fetch(`${API_URL}/${endpoint}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error();
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullText = "";
+                let hasClearedLoader = false;
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    fullText += decoder.decode(value, { stream: true });
+                    
+                    if (!hasClearedLoader) {
+                        aiBubble.innerHTML = '';
+                        hasClearedLoader = true;
+                    }
+                    
+                    aiBubble.innerHTML = marked.parse(fullText) + '<span class="inline-block w-2.5 h-4 ml-1 bg-sky-400 translate-y-1"></span>';
+                    document.getElementById('chat-container').scrollTop = document.getElementById('chat-container').scrollHeight;
+                }
+                
+                if (!hasClearedLoader) aiBubble.innerHTML = ''; // If stream is completely empty
+                aiBubble.innerHTML = marked.parse(fullText);
+
+            } catch (err) {
+                aiBubble.innerHTML = `<span class="text-rose-400 text-sm font-medium">Failed to generate response. Check if Ollama is running.</span>`;
+            } finally {
+                isGenerating = false;
+                document.getElementById('send-btn').disabled = false;
+            }
+        }
+
+        document.getElementById('chat-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            input.value = ''; input.style.height = '';
+            addMessage('user', text);
+            streamResponse('chat', { query: text });
+        });
+
+        document.getElementById('chat-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('chat-form').dispatchEvent(new Event('submit'));
+            }
+        });
+
+        window.triggerPreset = (type) => {
+            const msgs = { 'summary': 'Generate Summary', 'kpi': 'Extract KPIs', 'risk': 'Identify Risks' };
+            addMessage('user', msgs[type]);
+            streamResponse('preset', { type });
+        };
+    </script>
+</body>
+</html>
