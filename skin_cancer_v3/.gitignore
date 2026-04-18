@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Project specifics
+models/*.h5
+models/*.tflite
+models/*.onnx
+data/
+!data/.gitkeep
+
+# IDEs
+.vscode/
+.idea/
+
+# Next.js
+web/.next
+web/node_modules
+web/out
+web/.env*.local
+
+# Python/FastAPI
+backend/__pycache__
+backend/.pytest_cache
